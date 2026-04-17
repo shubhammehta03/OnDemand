@@ -10,3 +10,20 @@ dnf module enable -y ruby:3.1 nodejs:22
 dnf install https://yum.osc.edu/ondemand/4.1/ondemand-release-web-4.1-1.el8.noarch.rpm
 dnf install ondemand
 dnf install -y mod_auth_openidc
+
+
+## After generating the config file /etc/ood/config/ood_portal.yml ##
+
+1. **Generate and Apply the Apache Config:**
+## Open OnDemand uses a script to convert that YAML file into a standard Apache `.conf` file.
+
+# Generate the Apache config
+/opt/ood/ood-portal-generator/bin/generate -c /etc/ood/config/ood_portal.yml -o /etc/httpd/conf.d/ood-portal.conf
+
+# Test the Apache syntax to ensure it doesn't clash with your other services
+sudo apachectl configtest
+
+### 3. Verification
+
+If the `configtest` returns "Syntax OK", restart Apache:
+sudo systemctl restart httpd
