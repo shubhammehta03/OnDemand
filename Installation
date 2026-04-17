@@ -1,0 +1,12 @@
+## Enable PowerTools (required for many dependencies)
+dnf config-manager --set-enabled powertools
+
+### Install EPEL
+dnf install -y epel-release
+
+###Enable specific Ruby and Node.js modules required for OOD 4.0+
+### (OOD 4.x typically uses Ruby 3.x and Node 20)
+dnf module enable -y ruby:3.1 nodejs:22
+dnf install https://yum.osc.edu/ondemand/4.1/ondemand-release-web-4.1-1.el8.noarch.rpm
+dnf install ondemand
+dnf install -y mod_auth_openidc
