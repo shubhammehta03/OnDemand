@@ -4,6 +4,7 @@ mariadb-3.10.6, java-21-openjdk-headless
 ## To download Keycloak:
 wget https://github.com/keycloak/keycloak/releases/download/26.5.6/keycloak-26.5.6.zip
 
+## Unzip it in /opt/keycloak
 ## 1. Prepare the MySQL Database
 On your MySQL server (which can be the Keycloak node itself or a dedicated DB node), run the following commands to create the environment:
 
