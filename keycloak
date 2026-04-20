@@ -1,0 +1,70 @@
+## Prerequisite:
+mariadb-3.10.6, java-21-openjdk-headless
+
+## To download Keycloak:
+wget https://github.com/keycloak/keycloak/releases/download/26.5.6/keycloak-26.5.6.zip
+
+## 1. Prepare the MySQL Database
+On your MySQL server (which can be the Keycloak node itself or a dedicated DB node), run the following commands to create the environment:
+
+## SQL
+`- Create the database with UTF-8 support for international characters`
+
+`CREATE DATABASE keycloak CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+- Create the Keycloak user`
+
+`CREATE USER 'keycloak_user'@'%' IDENTIFIED BY 'YourSecurePass';
+- Grant permissions (Keycloak needs to create/alter tables on first run` 
+
+`GRANT ALL PRIVILEGES ON keycloak.* TO 'keycloak_user'@'%';
+FLUSH PRIVILEGES;`
+
+---
+
+## 2. Configure Keycloak for MySQL
+
+Keycloak (Quarkus distribution) comes with the MySQL driver built-in, so you don't need to download a separate `.jar` file like in the old days.
+
+Edit your configuration file: `/opt/keycloak/conf/keycloak.conf`
+# Basic settings for running in production. Change accordingly before deploying the server.
+
+# Database info
+db=mariadb
+db-username=keycloak
+db-password=<db-password>
+
+db-url=jdbc:mariadb://localhost:3306/keycloak?useUnicode=true&characterEncoding=UTF-8
+
+# If the server should expose healthcheck endpoints.
+health-enabled=true
+metrics-enabled=true
+http-access-log-enabled=true
+log=file
+
+# HTTP
+http-enabled=true
+http-port=8080
+https-port=8443
+https-certificate-file=/opt/keycloak/ssl/cert.pem
+https-certificate-key-file=/opt/keycloak/ssl/privkey.pem
+proxy=edge
+hostname=<hostname>
+hostname-strict=true
+hostname-strict-https=true
+hostname-port=443
+
+
+## 3. Build and Initialize Keycloak
+
+#After changing the database type in the config, you **must** rebuild the Keycloak optimized image.
+cd /opt/keycloak
+bin/kc.sh build
+
+# Start it up (initial run)
+# Note: Use start-dev first to ensure the DB tables are created correctly
+bin/kc.sh start-dev`
+
+
+# Open the localbrowser on https://localhost:8443
+
+
