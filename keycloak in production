@@ -15,7 +15,7 @@ Running Keycloak as `root` is a security risk. Create a system user that owns th
 
   sudo groupadd -r keycloak
   sudo useradd -r -g keycloak -d /opt/keycloak -s /sbin/nologin keycloak
-  sudo chown -R keycloak:keycloak /opt/keycloak`
+  sudo chown -R keycloak:keycloak /opt/keycloak
 
 ---
 
