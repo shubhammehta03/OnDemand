@@ -1,0 +1,62 @@
+For production:
+# bin/kc.sh start --optimized    (for debug)
+
+### 1. Build the Optimized Image
+Run this command once to "lock in" your database and hostname settings:
+
+  cd /opt/keycloak
+  bin/kc.sh build` 
+
+---
+
+### 2. Create a Dedicated User (Security Best Practice)
+
+Running Keycloak as `root` is a security risk. Create a system user that owns the Keycloak files:
+
+  sudo groupadd -r keycloak
+  sudo useradd -r -g keycloak -d /opt/keycloak -s /sbin/nologin keycloak
+  sudo chown -R keycloak:keycloak /opt/keycloak`
+
+---
+
+### 3. Create the Systemd Service File
+
+Create the file at '/etc/systemd/system/keycloak.service':
+
+[Unit]
+Description=Keycloak Identity Management
+After=network.target mariadb.service
+# If MariaDB is on a different node, remove mariadb.service from After
+
+[Service]
+Type=simple
+User=keycloak
+Group=keycloak
+WorkingDirectory=/opt/keycloak
+# Optimized start uses the settings from the 'build' command
+ExecStart=/opt/keycloak/bin/kc.sh start --optimized
+Restart=always
+RestartSec=10
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target`
+
+---
+
+### 4. Enable and Start
+
+Run the following commands to register and launch the service:
+
+sudo systemctl daemon-reload
+sudo systemctl enable keycloak
+sudo systemctl start keycloak
+
+### 5. Verify the Status
+
+Check if the service is running and look for any Java/Quarkus errors in the logs:
+
+  systemctl status keycloak
+
+# To see live logs:
+  journalctl -u keycloak -f`
