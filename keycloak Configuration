@@ -1,0 +1,54 @@
+## Create a admin user and create a new realm:
+
+1. Create a new realm like "Master" Realm
+Don't use the "Master" realm for Open OnDemand. The Master realm is only for managing Keycloak itself.
+
+1. Click the dropdown in the top-left corner that says **Master**.
+2. Click **Create Realm**.
+3. **Realm name:** `Master`.
+4. Click **Create**.
+
+---
+
+### 2. Create the Open OnDemand Client
+
+This is how Keycloak knows to trust your OOD portal.
+
+1. Go to **Clients** in the left sidebar.
+2. Click **Create client**.
+3. Click **Create client**.
+4. **Client ID:** `ondemand` (Resource Provider).
+5. **Name:** `Open OnDemand`.
+6. Click **Next**.
+7. Toggle **Client Authentication** to **ON** (This makes it "Confidential").
+8. Click **Next**.
+9. **Root URL:** `https://hostname`
+10. **Home URL:** `https://hostname`
+11. **Valid redirect URIs:** `https://hostname/oidc`
+12. Click **Save**.
+
+---
+
+### 3. Get your Client Secret
+
+You will need this to tell Open OnDemand how to "talk" to Keycloak securely.
+
+1. Inside your new `ondemand` client, click the **Credentials** tab.
+2. Copy the **Client Secret**. (Keep this safe! We will put this in your OOD config later).
+
+---
+
+### 4. Configure User Federation (LDAP)
+
+Since you are a cluster, your users probably already exist in **LDAP** or **Active Directory**. You don't want to create users manually in Keycloak.
+
+1. Go to **User Federation** in the sidebar.
+2. Click **Add Ldap providers**.
+3. Fill in your LDAP server details (URL, Users DN, Bind DN).
+4. **Username LDAP attribute:** `uid`.
+5. **UUID LDAP attribute:** `uidNumber` (or `entryUUID`).
+6. Click **Save** and then click **Sync all users**.
+
+To run Keycloak as a robust system service for your cluster, we should move away from `start-dev` and use a production-ready configuration.
+
+Before creating the service, ensure you have **"built"** Keycloak with your specific settings (MariaDB, HTTPS, etc.) so it can start in "optimized" mode.
