@@ -27,7 +27,7 @@ lua_set_env:
   OOD_SESSION_COOKIE_SECURE: "On"
 
 
-In ondemand.d/rudra.yml
+In cluster.d/rudra.yml
 ---
 v2:
   metadata:
