@@ -25,3 +25,22 @@ If you are using **HTTPS** (highly recommended), set it to `None`:
 lua_set_env:
   OOD_SESSION_COOKIE_SAMESITE: "None"
   OOD_SESSION_COOKIE_SECURE: "On"
+
+
+In ondemand.d/rudra.yml
+---
+v2:
+  metadata:
+    title: "Param Rudra cluster"
+  login:
+    host: "localhost" # Connects to the local login node
+  job:
+    adapter: "slurm"  # This enables the "Shell" menu item in OOD
+    bin: "/usr/bin"          # Path where 'sbatch', 'squeue' live
+    conf: "/etc/slurm/slurm.conf"
+    copy_environment: false
+    strict_host_checking: false
+  batch_connect:
+    vnc:
+      script_wrapper: "export PATH=$PATH:/opt/TurboVNC/bin; %s"
+    ssh_allow: true
