@@ -1,0 +1,180 @@
+Download following repo:
+
+# **1. Software Requirements[](https://osc.github.io/ood-documentation/latest/how-tos/app-development/interactive/setup/software-requirements.html#software-requirements)**
+
+Some interactive apps will need a VNC server on the compute node (e.g., the Desktop app). This requires the following software to be installed on the nodes that the batch job submitted by the Interactive App is meant to run on, **NOT** the OnDemand node.
+
+For VNC server support:
+
+- [nmap-ncat](https://nmap.org/ncat/)
+- [TurboVNC](https://turbovnc.org/) 2.1+
+- [websockify](https://github.com/novnc/websockify) 0.13.0+
+
+We will move with turboVNC on compute node:
+
+```
+[TurboVNC]
+name=TurboVNC official RPMs
+baseurl=https://packagecloud.io/dcommander/turbovnc/rpm_any/rpm_any/$basearch
+repo_gpgcheck=1
+gpgcheck=1
+gpgkey=https://packagecloud.io/dcommander/turbovnc/gpgkey
+       https://raw.githubusercontent.com/TurboVNC/repo/main/VGL-GPG-KEY
+enabled=1
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+
+[TurboVNC-source]
+name=TurboVNC official SRPMs
+baseurl=https://packagecloud.io/dcommander/turbovnc/rpm_any/rpm_any/SRPMS
+repo_gpgcheck=1
+gpgcheck=1
+gpgkey=https://packagecloud.io/dcommander/turbovnc/gpgkey
+       https://raw.githubusercontent.com/TurboVNC/repo/main/VGL-GPG-KEY
+enabled=1
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+```
+
+#  yum install turbovnc
+
+# rpm -vhU https://nmap.org/dist/nmap-7.98-1.x86_64.rpm
+# rpm -vhU https://nmap.org/dist/zenmap-7.98-1.noarch.rpm
+# rpm -vhU https://nmap.org/dist/ncat-7.98-1.x86_64.rpm
+# rpm -vhU https://nmap.org/dist/nping-7.98-1.x86_64.rpm
+
+# yum install python3-websockify 
+
+**Enable PowerTools (AlmaLinux 8) or CRB (AlmaLinux 9):**These repositories are required for some dependencies.
+
+- *For AlmaLinux 8:*
+
+`# dnf config-manager --set-enabled powertools`
+
+- *For AlmaLinux 9:*
+
+`# dnf config-manager --set-enabled crb`
+
+**Install XFCE Group:**Install the XFCE desktop group and base X11 packages.
+
+`# dnf groupinstall "Xfce" "base-x" -y`
+# `systemctl set-default graphical.target //optional`
+
+Structure:
+
+apps/bc_desktop/
+├── alma.yml
+├── submit
+│   ├── my_submit.yml.erb
+└── template
+├── script.sh.erb
+
+# **2. Add a Cluster**
+
+We now need to add this cluster as a Desktop option in the Interactive Apps list. All customization is done underneath the root directory `/etc/ood/config/apps/bc_desktop` which requires escalated privileges to modify. **This is the core of your "Batch Connect" (bc) application. It handles the transition from a web form to a running Slurm job.**
+
+1. Start by creating the working directory:
+    
+    `mkdir -p /etc/ood/config/apps/bc_desktop`
+    
+2. For *each* cluster that we want to launch a Desktop session on we will need a corresponding [User Form (form.yml.erb)](https://osc.github.io/ood-documentation/latest/how-tos/app-development/interactive/form.html#app-development-interactive-form) configuration file in YAML format located in this directory.
+    
+    Assuming we want to launch a desktop on OSC's Oakley cluster we would have:
+    
+    `# /etc/ood/config/apps/bc_desktop/alma.yml`
+    
+    ```bash
+    ---
+    title: "Interactive Desktop" # This MUST match the filename in clusters.d/grace.yml
+    cluster: "paramrudra"
+    description: "This launches a GUI desktop on PARAM Rudra compute nodes."
+    form:
+      - desktop
+      - bc_num_hour
+    attributes:
+      desktop: "xfce" # or gnome, icewm, xfce etc.
+      #  bc_queue: "null"
+      bc_num_hours:
+              value: 1
+    submit: "submit/my_submit.yml.erb"
+    dev_mode: true
+    ```
+    
+    ***Defines the User Interface (Form). It controls the dropdowns, text boxes, and checkboxes users see (e.g., choosing a partition, node, or number of hours) before clicking "Launch."***
+    
+    **Warning**
+    
+    The `cluster` attribute above **MUST** match a valid cluster configuration file located underneath `/etc/ood/config/clusters.d/`.
+    
+3. Navigate to your OnDemand site, in particular the Dashboard App, and you should see in the top drop-down menu "Interactive Apps" ⇒ "Oakley Desktop" (or whatever you set as the `title`).
+    
+    After choosing "PARAM Rudra Desktop" from the menu, you should be presented with a form to "Launch" a Desktop session to the given cluster. Most likely if you click "Launch" it will fail miserably. That is because we will need to configure the submission parameters for cluster's resource manager.
+    
+    **Note**
+    
+    If by some chance when you click "Launch" and it actually successfully submits a job to your cluster, it is **highly** recommended that you click the link under "Session ID:". This will open the file browser underneath the working directory of the batch job. This will allow you to read all the logs generated to help debug any issues that may crop up.
+    
+
+### 3. Slurm generator file
+
+Create a file in a folder submit/my_submit.yml.erb:
+
+---
+batch_connect:
+  template: "vnc"
+script:
+  native:
+    - "-N"
+    - "<%= bc_num_slots.blank? ? 1 : bc_num_slots.to_i %>"
+    - "--nodelist=rdcn35"
+    - "--ntasks-per-node=2"
+    - "--mem-per-cpu=8G"
+```
+
+The **Slurm Instruction Generator**. It takes the inputs from `alma.yml` and converts them into a Slurm job submission (e.g., `--nodes=1`, `--reservation=...`). The `.erb` extension allows it to use logic (if/else).
+
+### 4. Create Execution Script
+
+Create a file script.sh.erb in template folder. This is the most important file. It runs *on the compute node* after the job starts. It sets up D-Bus, cleans up locks, and actually launches the VNC server and XFCE desktop.
+
+#!/usr/bin/env bash
+
+# 1. Basic Environment Setup
+cd "${HOME}"
+export SHELL="$(getent passwd $USER | cut -d: -f7)"
+
+# 2. Path Cleanup (Preventing Conda/Home path conflicts)
+SAFE_PATH=$(echo -n "$PATH" | tr : '\0' | grep -zvE ^"$HOME"'($|/)' | tr '\0' : | head -c -1)
+export PATH="$SAFE_PATH:/usr/bin:/bin"
+
+# 3. Clean up stale locks to prevent "frozen" sessions
+rm -f /tmp/.X11-unix/X${display} /tmp/.X${display}-lock
+rm -rf /tmp/dbus-*
+killall -u $(whoami) dbus-daemon dbus-launch 2>/dev/null
+
+# 4. Hardware/Software Rendering (Fixes Segfaults)
+export LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=llvmpipe
+
+# 5. D-Bus Setup (Start ONCE)
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+  eval $(dbus-launch --sh-syntax --exit-with-session)
+  export DBUS_SESSION_BUS_ADDRESS
+fi
+
+# 6. Disable Screensaver (Prevents the "stuck" input window)
+xset -dpms
+xset s off
+pkill xfce4-screensaver 2>/dev/null
+
+# 7. Window Manager & Desktop Launch
+# Start xfwm4 in the background so it manages windows immediately
+xfwm4 --daemon &
+
+echo "Launching desktop '<%= context.desktop %>'..."
+# We use 'source' here instead of 'exec' to keep the script alive for cleanup if needed
+source "<%= session.staged_root.join("desktops", "#{context.desktop}.sh") %>"
+
+echo "Desktop '<%= context.desktop %>' ended with $? status..."
+
+```
