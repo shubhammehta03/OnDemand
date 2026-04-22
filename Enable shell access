@@ -1,0 +1,27 @@
+### Configuration for linux desktop (shell access)
+
+# cat apps/shell/env:
+
+OOD_NO_CSRF=false
+OOD_SSH_HOSTS="localhost"
+NODE_TLS_REJECT_UNAUTHORIZED=0
+NODE_ENV=production
+NODE_PATH=/usr/bin/node
+OOD_SSH_FLAGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+OOD_SSHHOST_ALLOWLIST=login02:login01
+OOD_SHELL_ORIGIN_CHECK='off'
+OOD_NAVBAR_BG_COLOR="#002d54"
+OOD_DASHBOARD_TITLE="Param Rudra terminal"
+
+
+### 1. Update 'ood_portal.yml'
+
+Open your configuration file (usually at `/etc/ood/config/ood_portal.yml`) and ensure your session cookies are set to `Lax` or `None`.
+
+If you are using **HTTPS** (highly recommended), set it to `None`:
+
+# vim /etc/ood/config/ood_portal.yml
+# This ensures cookies are sent along with the cross-tab request to the shell
+lua_set_env:
+  OOD_SESSION_COOKIE_SAMESITE: "None"
+  OOD_SESSION_COOKIE_SECURE: "On"
