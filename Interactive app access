@@ -179,7 +179,7 @@ echo "Desktop '<%= context.desktop %>' ended with $? status..."
 
 ```
 
- cat alma/form.yml.erb
+#### cat alma/form.yml.erb
 ---
 attributes:
   # This 'dummy' attribute acts as our Status Sidebar
