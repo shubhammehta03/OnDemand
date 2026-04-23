@@ -1,3 +1,14 @@
+ tree bc_desktop/
+bc_desktop/
+├── alma
+│   └── form.yml.erb
+├── alma.yml
+├── submit
+│   ├── my_submit.yml.erb
+└── template
+    ├── script.sh.erb
+
+
 Download following repo:
 
 # **1. Software Requirements[](https://osc.github.io/ood-documentation/latest/how-tos/app-development/interactive/setup/software-requirements.html#software-requirements)**
