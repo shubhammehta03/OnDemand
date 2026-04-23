@@ -178,3 +178,45 @@ source "<%= session.staged_root.join("desktops", "#{context.desktop}.sh") %>"
 echo "Desktop '<%= context.desktop %>' ended with $? status..."
 
 ```
+
+ cat alma/form.yml.erb
+---
+attributes:
+  # This 'dummy' attribute acts as our Status Sidebar
+  node_info_sidebar:
+    widget: "hidden_field"
+    label: ""
+    help: |
+      <div id="node-status-sidebar" style="background: #fdfdfd; border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+        <h4 style="margin-top: 0; color: #003366;"><i class="fa fa-info-circle"></i> Node rdcn35 Status</h4>
+        <%
+          # Fetch core data using sinfo (more efficient than scontrol for just counts)
+          # %C gives: Allocated/Idle/Other/Total
+          core_stats = `sinfo -h -n rdcn35 -o %C`.strip.split('/')
+          alloc = core_stats[0].to_i
+          idle  = core_stats[1].to_i
+          total = core_stats[3].to_i
+
+          # Calculate status based on your 2-core rule
+          status_label = (idle >= 2) ? "success" : "danger"
+          status_text  = (idle >= 2) ? "AVAILABLE" : "FULL"
+        %>
+        <div style="margin-bottom: 10px;">
+          <span class="label label-<%= status_label %>" style="font-size: 1.1em;"><%= status_text %></span>
+        </div>
+
+        <table class="table table-condensed" style="margin-bottom: 0;">
+          <tr><td><strong>Total Cores:</strong></td><td><%= total %></td></tr>
+          <tr><td><strong>In Use:</strong></td><td><%= alloc %></td></tr>
+          <tr><td><strong>Free Cores:</strong></td><td style="color: #28a745; font-weight: bold;"><%= idle %></td></tr>
+        </table>
+
+        <p class="small text-muted" style="margin-top: 10px;">
+          <i class="fa fa-clock-o"></i> Each desktop session requires <strong>2 cores</strong>.
+        </p>
+      </div>
+
+form:
+  - node_info_sidebar
+  - bc_num_hours
+  # ... rest of your form
